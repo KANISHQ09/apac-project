@@ -1,0 +1,61 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment variables - never commit secrets!
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+# .env.example is intentionally NOT ignored (safe template)
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sw?
+
+# Ignore all markdown files
+*.md
+**/*.md
+
+# Except README.md
+!/README.md
+
+# Python virtual environments & cache files
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+supabase/.temp/
+
+# Firebase local files
+.firebase/
+
+# Firebase AI Agent
+.agents/
+skills-lock.json
+
+# Local database connection test scripts
+test_new_password_pooler.cjs
