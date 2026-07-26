@@ -15,13 +15,15 @@ export function getCorsAndSecurityHeaders(req: Request): Headers {
     const envOrigins = Deno.env.get("CORS_ALLOWED_ORIGINS")?.split(",") || [];
     const isAllowed =
       ALLOWED_ORIGINS.includes(origin) ||
+      origin.startsWith("http://localhost:") ||
+      origin === "http://localhost" ||
       origin.endsWith(".supabase.co") ||
       envOrigins.includes(origin);
 
     if (isAllowed) {
       headers.set("Access-Control-Allow-Origin", origin);
-    } else if (Deno.env.get("ENVIRONMENT") === "development" || !Deno.env.get("ENVIRONMENT")) {
-      // Fallback for development if no environment is defined
+    } else if (Deno.env.get("ENVIRONMENT") === "development") {
+      // Fallback for development if explicitly configured
       headers.set("Access-Control-Allow-Origin", origin);
     }
   }

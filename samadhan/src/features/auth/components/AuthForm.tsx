@@ -21,6 +21,7 @@ import {
   Globe
 } from "lucide-react";
 import { logger } from "@/shared/services/logger";
+import { useAuth } from "@/features/auth";
 
 export function AuthForm() {
   const location = useLocation();
@@ -28,6 +29,7 @@ export function AuthForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t, language, setLanguage } = useLanguage();
+  const { signIn, signUp } = useAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,7 +67,7 @@ export function AuthForm() {
           return;
         }
 
-        await authService.signUp({
+        await signUp({
           fullName: validation.data.fullName,
           email: validation.data.email,
           password: validation.data.password,
@@ -94,7 +96,7 @@ export function AuthForm() {
           return;
         }
 
-        const signInResult = await authService.signIn({
+        const signInResult = await signIn({
           email: validation.data.email,
           password: validation.data.password,
         });

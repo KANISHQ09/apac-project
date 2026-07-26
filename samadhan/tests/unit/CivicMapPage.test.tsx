@@ -37,22 +37,25 @@ vi.mock("leaflet", () => {
     openPopup: vi.fn(),
   };
 
-  return {
-    default: {
-      map: vi.fn().mockReturnValue(mockMap),
-      tileLayer: vi.fn().mockReturnValue({
-        addTo: vi.fn().mockReturnThis(),
-      }),
-      layerGroup: vi.fn().mockReturnValue(mockLayerGroup),
-      marker: vi.fn().mockReturnValue(mockMarker),
-      divIcon: vi.fn().mockReturnValue({}),
-      Icon: {
-        Default: {
-          prototype: {},
-          mergeOptions: vi.fn(),
-        },
+  const mockL = {
+    map: vi.fn().mockReturnValue(mockMap),
+    tileLayer: vi.fn().mockReturnValue({
+      addTo: vi.fn().mockReturnThis(),
+    }),
+    layerGroup: vi.fn().mockReturnValue(mockLayerGroup),
+    marker: vi.fn().mockReturnValue(mockMarker),
+    divIcon: vi.fn().mockReturnValue({}),
+    Icon: {
+      Default: {
+        prototype: {},
+        mergeOptions: vi.fn(),
       },
     },
+  };
+
+  return {
+    ...mockL,
+    default: mockL,
   };
 });
 
@@ -90,6 +93,28 @@ describe("CivicMapPage Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
+    // Mock geolocation
+    const mockGeolocation = {
+      getCurrentPosition: vi.fn().mockImplementation((success) => {
+        success({
+          coords: {
+            latitude: 23.2599,
+            longitude: 77.4126,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: Date.now(),
+        });
+      }),
+    };
+    vi.stubGlobal("navigator", {
+      ...global.navigator,
+      geolocation: mockGeolocation,
+    });
+
     // Mock the issues fetch method to return our custom mock data
     vi.spyOn(issueService, "fetchAllIssuesForMap").mockResolvedValue(
       mockIssues.map(i => issueService.mapResponseToDomain(i as any))

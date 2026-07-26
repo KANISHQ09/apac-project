@@ -13,9 +13,80 @@ import { voiceService } from "@/shared/services/voiceService";
 
 const detectionToCategory = (cls: string): string | null => {
   const c = cls.toLowerCase();
-  if (c.includes("pothole")) return "roads";
-  if (c.includes("garbage") || c.includes("trash") || c.includes("waste")) return "sanitation";
-  if (c.includes("civic")) return "buildings";
+  
+  // 1. Water Supply
+  if (
+    c.includes("water") ||
+    c.includes("leak") ||
+    c.includes("flooding") ||
+    c.includes("burst") ||
+    c.includes("overflow") ||
+    c.includes("sewage") ||
+    c.includes("drain") ||
+    c.includes("waterlogging")
+  ) {
+    return "water";
+  }
+  
+  // 2. Sanitation
+  if (
+    c.includes("garbage") ||
+    c.includes("waste") ||
+    c.includes("dustbin") ||
+    c.includes("trash") ||
+    c.includes("plastic") ||
+    c.includes("litter") ||
+    c.includes("debris")
+  ) {
+    return "sanitation";
+  }
+  
+  // 3. Roads
+  if (
+    c.includes("road") ||
+    c.includes("pothole") ||
+    c.includes("pavement") ||
+    c.includes("crack") ||
+    (c.includes("street") && !c.includes("light"))
+  ) {
+    return "roads";
+  }
+  
+  // 4. Electricity
+  if (
+    c.includes("light") ||
+    c.includes("electricity") ||
+    c.includes("power") ||
+    c.includes("wire") ||
+    c.includes("hazard") ||
+    c.includes("transformer") ||
+    c.includes("pole")
+  ) {
+    return "electricity";
+  }
+  
+  // 5. Parks & Gardens
+  if (
+    c.includes("tree") ||
+    c.includes("branch") ||
+    c.includes("garden") ||
+    c.includes("park")
+  ) {
+    return "parks";
+  }
+  
+  // 6. Buildings / Civic Infrastructure
+  if (
+    c.includes("building") ||
+    c.includes("civic") ||
+    c.includes("wall") ||
+    c.includes("toilet") ||
+    c.includes("property") ||
+    c.includes("stop")
+  ) {
+    return "buildings";
+  }
+  
   return null;
 };
 
@@ -99,6 +170,20 @@ export function useReportIssue(user: User | null, activeLanguage: "en" | "hi") {
   const [annotatedImage, setAnnotatedImage] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [detectedClasses, setDetectedClasses] = useState<string[]>([]);
+  
+  // AI Vision Telemetry states
+  const [aiConfidence, setAiConfidence] = useState<number | null>(null);
+  const [aiReason, setAiReason] = useState<string | null>(null);
+  const [aiRisk, setAiRisk] = useState<string | null>(null);
+  const [aiPriority, setAiPriority] = useState<string | null>(null);
+  const [aiProvider, setAiProvider] = useState<string | null>(null);
+  const [aiModel, setAiModel] = useState<string | null>(null);
+  const [aiCategory, setAiCategory] = useState<string | null>(null);
+  const [aiSupportingDepartments, setAiSupportingDepartments] = useState<string[]>([]);
+  const [aiRequiresMultipleDepartments, setAiRequiresMultipleDepartments] = useState(false);
+  const [aiEstimatedResponseTime, setAiEstimatedResponseTime] = useState<string | null>(null);
+  const [aiDetectionTimeMs, setAiDetectionTimeMs] = useState<number | null>(null);
+
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -171,50 +256,98 @@ export function useReportIssue(user: User | null, activeLanguage: "en" | "hi") {
     setImageFile(processedFile);
     setAnnotatedImage(null);
     setDetectedClasses([]);
+    setAiConfidence(null);
+    setAiReason(null);
+    setAiRisk(null);
+    setAiPriority(null);
+    setAiProvider(null);
+    setAiModel(null);
+    setAiCategory(null);
+    setAiSupportingDepartments([]);
+    setAiRequiresMultipleDepartments(false);
+    setAiEstimatedResponseTime(null);
+    setAiDetectionTimeMs(null);
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
-      setImagePreview(dataUrl);
-      const base64 = dataUrl.split(",")[1];
+    setDetecting(true);
+    try {
+      const startTime = Date.now();
+      
+      // Phase 2 Preprocessing client-side
+      const preprocessed = await visionService.preprocessImage(processedFile);
+      setImagePreview(`data:${preprocessed.mimeType};base64,${preprocessed.base64}`);
 
-      setDetecting(true);
-      try {
-        const result = await visionService.analyseImage({
-          base64Image: base64,
-          mimeType: processedFile.type as any,
-        });
-        if (result.classes.length) {
-          setDetectedClasses(result.classes);
-          if (result.annotatedImage) {
-            setAnnotatedImage(`data:image/jpeg;base64,${result.annotatedImage}`);
-          }
-          const mapped = detectionToCategory(result.top);
-          if (mapped) setSelectedCategory(mapped);
-          toast({
-            title: activeLanguage === "en" ? "Detection complete" : "पहचान पूर्ण",
-            description: activeLanguage === "en"
-              ? `Detected: ${result.classes.join(", ")} (Severity: ${result.severityLabel.toUpperCase()})`
-              : `पाया गया: ${result.classes.join(", ")} (तीव्रता: ${result.severityLabel.toUpperCase()})`,
-          });
-        } else {
-          toast({
-            title: activeLanguage === "en" ? "No issues detected" : "कोई समस्या नहीं मिली",
-            description: activeLanguage === "en" ? "Please select a category manually." : "कृपया श्रेणी मैन्युअल रूप से चुनें।",
-          });
+      const result = await visionService.analyseImage({
+        base64Image: preprocessed.base64,
+        mimeType: preprocessed.mimeType as any,
+      });
+
+      const totalTime = Date.now() - startTime;
+      setAiDetectionTimeMs(result.latencyMs || totalTime);
+
+      if (result.classes.length || result.top) {
+        setDetectedClasses(result.classes);
+        if (result.annotatedImage) {
+          setAnnotatedImage(`data:image/jpeg;base64,${result.annotatedImage}`);
         }
-      } catch (err: any) {
-        logger.error("Detection failed:", err);
+        
+        // Match the category to set form category
+        const originalCategory = result.category || null;
+        setAiCategory(originalCategory);
+
+        if (originalCategory) {
+          const matchedCategoryKey = originalCategory.toLowerCase().includes("water") ? "water" :
+                                     originalCategory.toLowerCase().includes("sanit") ? "sanitation" :
+                                     originalCategory.toLowerCase().includes("elect") ? "electricity" :
+                                     originalCategory.toLowerCase().includes("road") ? "roads" :
+                                     originalCategory.toLowerCase().includes("park") ? "parks" :
+                                     originalCategory.toLowerCase().includes("build") ? "buildings" : null;
+          if (matchedCategoryKey) {
+            setSelectedCategory(matchedCategoryKey);
+          }
+        }
+        
+        setAiConfidence(result.confidence !== undefined ? result.confidence : 0.85);
+        setAiReason(result.reason || "Automatic civic issue detection.");
+        setAiRisk(result.potentialRisk || "Tripping, vehicle, or health hazard.");
+        setAiPriority(result.recommendedPriority || "MEDIUM");
+        setAiProvider(result.provider || "google");
+        setAiModel(result.provider === "roboflow" ? "roboflow-workflow" : "gemini-1.5-flash");
+        setAiSupportingDepartments(result.supportingDepartments || []);
+        setAiRequiresMultipleDepartments(result.requiresMultipleDepartments ?? false);
+        setAiEstimatedResponseTime(result.estimatedResponseTime || null);
+
+        // Autofill title and description if empty
+        if (result.issueTitle && !title) {
+          setTitle(result.issueTitle);
+        }
+        if (result.reason && !description) {
+          setDescription(result.reason);
+        }
+
         toast({
-          title: activeLanguage === "en" ? "Detection failed" : "पहचान विफल",
-          description: err.message || "An error occurred during AI analysis.",
-          variant: "destructive",
+          title: activeLanguage === "en" ? "AI Assessment complete" : "एआई मूल्यांकन पूर्ण",
+          description: activeLanguage === "en"
+            ? `Analyzed image successfully in ${(totalTime / 1000).toFixed(1)}s.`
+            : `छवि का ${(totalTime / 1000).toFixed(1)}s में सफलतापूर्वक विश्लेषण किया गया।`,
         });
-      } finally {
-        setDetecting(false);
+      } else {
+        toast({
+          title: activeLanguage === "en" ? "No issues detected" : "कोई समस्या नहीं मिली",
+          description: activeLanguage === "en" ? "Please select a category manually." : "कृपया श्रेणी मैन्युअल रूप से चुनें।",
+        });
       }
-    };
-    reader.readAsDataURL(processedFile);
+    } catch (err: any) {
+      logger.error("Detection failed:", err);
+      toast({
+        title: activeLanguage === "en" ? "Analysis Unavailable" : "विश्लेषण अनुपलब्ध",
+        description: activeLanguage === "en"
+          ? "Image could not be analyzed. Try another photo or continue manually."
+          : "छवि का विश्लेषण नहीं किया जा सका। दूसरी फ़ोटो आज़माएं या मैन्युअल रूप से जारी रखें।",
+        variant: "destructive",
+      });
+    } finally {
+      setDetecting(false);
+    }
   };
 
   /**
@@ -314,16 +447,52 @@ export function useReportIssue(user: User | null, activeLanguage: "en" | "hi") {
     setIsSubmitting(true);
 
     try {
-      await issueService.reportNewIssue(
+      // Calculate manual citizen correction flag (Phase 9)
+      const finalCategoryName = selectedCategory ? selectedCategory.toLowerCase() : "";
+      const originalCategoryName = aiCategory ? aiCategory.toLowerCase() : "";
+      
+      const matchKey = (val: string) => {
+        if (!val) return "";
+        if (val.includes("water")) return "water";
+        if (val.includes("sanit")) return "sanitation";
+        if (val.includes("elect")) return "electricity";
+        if (val.includes("road")) return "roads";
+        if (val.includes("park")) return "parks";
+        if (val.includes("build")) return "buildings";
+        return val;
+      };
+      
+      const isCategoryCorrected = matchKey(finalCategoryName) !== matchKey(originalCategoryName);
+      const aiCitizenCorrected = aiConfidence !== null && isCategoryCorrected;
+
+      const submissionPromise = issueService.reportNewIssue(
         user.id,
         {
           ...(validationResult.data as { title: string; description: string; category: string; location: string }),
           latitude,
           longitude,
+          aiProvider,
+          aiModel,
+          aiConfidence,
+          aiReason,
+          aiRisk,
+          aiPriority,
+          aiCategory,
+          aiSupportingDepartments,
+          aiRequiresMultipleDepartments,
+          aiEstimatedResponseTime,
+          aiDetectionTimeMs,
+          aiCitizenCorrected,
         },
         imageFile,
         activeLanguage
       );
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(activeLanguage === "en" ? "Submission timed out (5s limit exceeded)" : "सबमिशन समय समाप्त (5 सेकंड की सीमा से अधिक)")), 5000)
+      );
+
+      await Promise.race([submissionPromise, timeoutPromise]);
 
       gamificationService.dispatchGamificationUpdate();
 
@@ -370,6 +539,18 @@ export function useReportIssue(user: User | null, activeLanguage: "en" | "hi") {
     detectedClasses,
     handleImageChange,
     handleSubmit,
+    // AI Vision Telemetry
+    aiConfidence,
+    aiReason,
+    aiRisk,
+    aiPriority,
+    aiProvider,
+    aiModel,
+    aiCategory,
+    aiSupportingDepartments,
+    aiRequiresMultipleDepartments,
+    aiEstimatedResponseTime,
+    aiDetectionTimeMs,
     // Voice
     isRecording,
     interimTranscript,

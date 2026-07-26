@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Award, Flame, Sparkles, User, Trophy, Compass, ShieldAlert, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/features/auth";
@@ -53,7 +53,7 @@ export function CommunityHeroWidget() {
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const refreshStats = async () => {
+  const refreshStats = useCallback(async () => {
     if (!user) return;
     try {
       const rawIssues = await issueRepository.fetchUserIssues(user.id);
@@ -66,9 +66,11 @@ export function CommunityHeroWidget() {
 
       profileService.getProfile(user.id)
         .then((prof) => setUserProfile(prof))
-        .catch(() => {});
-    } catch {}
-  };
+        .catch((err) => logger.error("Failed to fetch profile in CommunityHeroWidget:", err));
+    } catch (err) {
+      logger.error("Failed to refresh stats in CommunityHeroWidget:", err);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -83,7 +85,7 @@ export function CommunityHeroWidget() {
       setUserProfile(null);
       setStatsLoaded(false);
     }
-  }, [user]);
+  }, [user, refreshStats]);
 
   const progress = gamificationService.computeProgress(issues, supportedIssues);
 

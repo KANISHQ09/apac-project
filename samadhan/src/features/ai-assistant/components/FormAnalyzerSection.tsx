@@ -79,7 +79,7 @@ export function AnalyzerAndAssistant() {
       setInputValue(transcript);
     };
     recognitionRef.current.onend = () => setIsListening(false);
-  }, [language]);
+  }, [language, isSpeechSupported]);
 
   const toggleListening = () => {
     if (!recognitionRef.current) return;

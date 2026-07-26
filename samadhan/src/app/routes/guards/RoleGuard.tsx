@@ -1,10 +1,7 @@
-import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth";
-import { adminService } from "@/features/admin";
 import { Loader2 } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
-import { logger } from "@/shared/services/logger";
 import { UserRole } from "@/shared/types/domain/UserRole";
 
 export function RoleGuard({
@@ -14,33 +11,9 @@ export function RoleGuard({
   children: React.ReactNode;
   allowedRoles: UserRole[];
 }) {
-  const { user, loading: authLoading } = useAuth();
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [checking, setChecking] = useState(true);
+  const { user, role, loading, roleLoading } = useAuth();
 
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (!user) {
-      setUserRole(null);
-      setChecking(false);
-      return;
-    }
-
-    setChecking(true);
-    adminService.getUserRole(user.id)
-      .then((res) => {
-        setUserRole(res.role as UserRole);
-        setChecking(false);
-      })
-      .catch((err) => {
-        logger.error("Failed to verify user role in guard:", err);
-        setUserRole(UserRole.USER); // Default fallback
-        setChecking(false);
-      });
-  }, [user, authLoading]);
-
-  if (authLoading || checking) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -48,7 +21,7 @@ export function RoleGuard({
     );
   }
 
-  if (!userRole || !allowedRoles.includes(userRole)) {
+  if (!user || !role || !allowedRoles.includes(role)) {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
 

@@ -53,6 +53,8 @@ import {
 } from "lucide-react";
 import { AnalyticsPanel } from "../components/AnalyticsPanel";
 import { AIInsightPanel } from "@/features/issues/components/AIInsightPanel";
+import { CitizenResolutionView } from "@/features/admin/components/CitizenResolutionView";
+import { CitizenConfirmationModal } from "@/features/admin/components/CitizenConfirmationModal";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   "Water Supply": <Droplets className="w-4 h-4" />,
@@ -100,6 +102,7 @@ export default function DashboardPage() {
   const [showAnalytics, setShowAnalytics] = useState(true);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [verificationVersion, setVerificationVersion] = useState(0);
+  const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
 
   useEffect(() => {
     const handleSync = () => {
@@ -491,6 +494,40 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
+                    {/* Citizen Verification Banner for Resolved Issue */}
+                    {selectedIssue.status === IssueStatus.RESOLVED && selectedIssue.userId === user?.id && (
+                      <div className="mb-4 p-4 border border-green-500/30 bg-green-500/5 rounded-xl flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold text-green-600">
+                            {language === "en" ? "Verification Pending" : "सत्यापन लंबित"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "en" 
+                              ? "Please verify if the issue was resolved to your satisfaction."
+                              : "कृपया सत्यापित करें कि क्या आपकी संतुष्टि के अनुसार समस्या का समाधान हो गया है।"}
+                          </p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700 text-white font-bold shrink-0"
+                          onClick={() => setIsReopenModalOpen(true)}
+                        >
+                          {language === "en" ? "Verify Resolution" : "समाधान सत्यापित करें"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Citizen Coordinated Resolution view */}
+                    {selectedIssue.status === IssueStatus.RESOLVED && (
+                      <div className="mb-4">
+                        <CitizenResolutionView 
+                          caseId={selectedIssue.id} 
+                          caseNumber={selectedIssue.caseNumber || selectedIssue.id.slice(0, 8)}
+                          onReopenRequest={() => setIsReopenModalOpen(true)}
+                        />
+                      </div>
+                    )}
+
                     {/* Description */}
                     <div className="mb-4">
                       <h4 className="text-sm font-bold text-foreground mb-2">
@@ -622,6 +659,18 @@ export default function DashboardPage() {
       )}
     </DialogContent>
       </Dialog>
+
+      {isReopenModalOpen && selectedIssue && (
+        <CitizenConfirmationModal
+          caseId={selectedIssue.id}
+          caseNumber={selectedIssue.caseNumber || selectedIssue.id.slice(0, 8)}
+          citizenId={user?.id || ""}
+          onClose={() => setIsReopenModalOpen(false)}
+          onReopenSubmitted={() => {
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

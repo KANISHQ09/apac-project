@@ -55,7 +55,4 @@ supabase/.temp/
 
 # Firebase AI Agent
 .agents/
-skills-lock.json
-
-# Local database connection test scripts
-test_new_password_pooler.cjs
+skills-lock.jsonscratch/

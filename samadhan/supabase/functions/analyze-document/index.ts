@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+import { verifyUser } from "../shared/edge/auth/jwt.ts";
 
 const NVIDIA_BASE = "https://integrate.api.nvidia.com/v1";
 const VISION_MODEL = "meta/llama-3.2-11b-vision-instruct";
@@ -61,6 +62,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authResult = await verifyUser(req);
+    if (authResult.error) {
+      return errorResponse(authResult.error, authResult.status || 401);
+    }
+
     const ip = req.headers.get("x-forwarded-for") ?? "unknown";
     if (isRateLimited(ip)) {
       return errorResponse("Too many requests. Please wait a moment and try again.", 429);

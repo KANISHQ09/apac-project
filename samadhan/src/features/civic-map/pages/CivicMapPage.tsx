@@ -441,6 +441,7 @@ export default function CivicMapPage() {
       setMapInstance(null);
       markersRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // -- Fetch all issues from Supabase -------------------------------------------
@@ -828,7 +829,11 @@ export default function CivicMapPage() {
   const toggleCategory = (cat: string) => {
     setCategoryFilters((prev) => {
       const next = new Set(prev);
-      next.has(cat) ? next.delete(cat) : next.add(cat);
+      if (next.has(cat)) {
+        next.delete(cat);
+      } else {
+        next.add(cat);
+      }
       return next;
     });
   };
@@ -836,7 +841,11 @@ export default function CivicMapPage() {
   const toggleStatus = (s: string) => {
     setStatusFilters((prev) => {
       const next = new Set(prev);
-      next.has(s) ? next.delete(s) : next.add(s);
+      if (next.has(s)) {
+        next.delete(s);
+      } else {
+        next.add(s);
+      }
       return next;
     });
   };

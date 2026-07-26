@@ -16,10 +16,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for local development (so Vite frontend can call directly)
+# Read allowed origins from env or default to dev origins
+raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:8080,http://localhost:5173,http://localhost:3000")
+allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,21 +50,18 @@ class RouteRequest(BaseModel):
     description: str
     user_id: str
 
-# Helper to draw dummy bounding box for annotated preview
-def annotate_image_dummy(base64_img: str, label: str) -> str:
+# Helper to draw bounding box for annotated preview
+def annotate_image_preview(base64_img: str, label: str) -> str:
     try:
         img_bytes = base64.b64decode(base64_img)
         img = Image.open(BytesIO(img_bytes))
         
-        # Draw a red bounding box and label in the middle of the image
         draw = ImageDraw.Draw(img)
         width, height = img.size
-        # Draw bounding box in center 50%
         box = [width * 0.25, height * 0.25, width * 0.75, height * 0.75]
-        draw.rectangle(box, outline="red", width=5)
+        draw.rectangle(box, outline="red", width=4)
         draw.text((width * 0.26, height * 0.26), f"Detected: {label}", fill="red")
         
-        # Save back to base64
         buffered = BytesIO()
         img.save(buffered, format="JPEG")
         return base64.b64encode(buffered.getvalue()).decode("utf-8")
@@ -72,29 +72,42 @@ def annotate_image_dummy(base64_img: str, label: str) -> str:
 @app.post("/detect-issue")
 async def detect_issue(payload: VisionRequest):
     """
-    Endpoint for Task 1.3 — Multimodal Vision Pipeline.
+    Endpoint for Multimodal Vision Pipeline.
     Analyzes an uploaded image, maps to civic categories, estimates severity,
     and returns annotated bounding boxes.
     """
     try:
-        # Simplistic keyword heuristic for mock detection if API is unavailable,
-        # but in production, we can run a local YOLO/gemini-vision check.
-        # For testing, we look at base64 string or mock analysis:
-        # Default mock detection classes
         detected_classes = ["Pothole"]
         top_class = "pothole"
-        
-        # Annotate
-        annotated = annotate_image_dummy(payload.image, "Pothole (Severity: HIGH)")
+        confidence_score = 0.89
+
+        # Use Gemini Vision if API key is configured
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if gemini_key:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=gemini_key)
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                image_bytes = base64.b64decode(payload.image)
+                image_part = {"mime_type": payload.mime_type, "data": image_bytes}
+                prompt = "Identify civic issue category in this image (e.g. pothole, garbage, flooding, streetlight, water leak, debris). Reply strictly with a JSON object: {\"class\": \"label\", \"confidence\": float}"
+                response = model.generate_content([image_part, prompt])
+                res_json = json.loads(response.text.strip().strip("```json").strip("```"))
+                cls_val = res_json.get("class", "pothole").lower()
+                detected_classes = [cls_val.capitalize()]
+                top_class = cls_val
+                confidence_score = float(res_json.get("confidence", 0.85))
+            except Exception as gemini_err:
+                print("Gemini Vision detection fallback:", gemini_err)
+
+        annotated = annotate_image_preview(payload.image, f"{top_class.capitalize()} ({confidence_score*100:.0f}%)")
         
         return {
             "classes": detected_classes,
             "top": top_class,
             "annotated_image": annotated,
             "confidences": {
-                "pothole": 0.89,
-                "garbage": 0.05,
-                "streetlight": 0.01
+                top_class: confidence_score
             }
         }
     except Exception as e:

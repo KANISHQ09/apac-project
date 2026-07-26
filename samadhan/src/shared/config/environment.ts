@@ -5,6 +5,7 @@ const environmentSchema = z.object({
   VITE_SUPABASE_PUBLISHABLE_KEY: z.string().min(1, "VITE_SUPABASE_PUBLISHABLE_KEY is required"),
   VITE_FORM_KB_SUPABASE_URL: z.string().url("VITE_FORM_KB_SUPABASE_URL must be a valid URL").optional(),
   VITE_FORM_KB_SUPABASE_ANON_KEY: z.string().min(1, "VITE_FORM_KB_SUPABASE_ANON_KEY is required").optional(),
+  VITE_VISION_API_URL: z.string().url("VITE_VISION_API_URL must be a valid URL").optional(),
 });
 
 let envParsed: z.infer<typeof environmentSchema>;
@@ -15,6 +16,7 @@ try {
     VITE_SUPABASE_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     VITE_FORM_KB_SUPABASE_URL: import.meta.env.VITE_FORM_KB_SUPABASE_URL,
     VITE_FORM_KB_SUPABASE_ANON_KEY: import.meta.env.VITE_FORM_KB_SUPABASE_ANON_KEY,
+    VITE_VISION_API_URL: import.meta.env.VITE_VISION_API_URL,
   });
 } catch (error) {
   console.error("❌ Environment configuration validation failed:", error);
@@ -24,6 +26,7 @@ try {
     VITE_SUPABASE_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "placeholder-key",
     VITE_FORM_KB_SUPABASE_URL: import.meta.env.VITE_FORM_KB_SUPABASE_URL || "https://placeholder.supabase.co",
     VITE_FORM_KB_SUPABASE_ANON_KEY: import.meta.env.VITE_FORM_KB_SUPABASE_ANON_KEY || "placeholder-key",
+    VITE_VISION_API_URL: import.meta.env.VITE_VISION_API_URL || undefined,
   };
 }
 
@@ -32,6 +35,7 @@ export const env = {
   supabasePublishableKey: envParsed.VITE_SUPABASE_PUBLISHABLE_KEY,
   formKbSupabaseUrl: envParsed.VITE_FORM_KB_SUPABASE_URL,
   formKbSupabaseAnonKey: envParsed.VITE_FORM_KB_SUPABASE_ANON_KEY,
+  visionApiUrl: envParsed.VITE_VISION_API_URL,
   isDev: import.meta.env.DEV,
   isProd: import.meta.env.PROD,
 } as const;

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, forwardRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { useLanguage } from "@/app/providers/LanguageProvider";
 import { useAuth } from "@/features/auth";
+import { UserRole } from "@/shared/types/domain/UserRole";
 import { ROUTES } from "@/shared/config/routes";
 import { isFeatureEnabled, FeatureFlagName } from "@/shared/config/featureFlags";
 import { 
@@ -50,8 +51,9 @@ const navItems: NavItem[] = [
 export const Header = forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>((props, ref) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, roleLoading, role, department, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   useEffect(() => {
@@ -70,12 +72,21 @@ export const Header = forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>
   const isActive = (href: string) => location.pathname === href;
 
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      await signOut();
+    } finally {
+      navigate(ROUTES.SIGN_IN, { replace: true });
+    }
   };
 
-  const visibleNavItems = navItems.filter(
-    (item) => !item.flag || isFeatureEnabled(item.flag)
-  );
+  const isAdminUser = role && ["super_admin", "admin", "department_admin"].includes(role);
+
+  const visibleNavItems = isAdminUser
+    ? [
+        { labelKey: "nav.operations", href: ROUTES.ADMIN, icon: MapPin },
+        { labelKey: "nav.fieldMap", href: ROUTES.CIVIC_MAP, icon: Map },
+      ]
+    : navItems.filter((item) => !item.flag || isFeatureEnabled(item.flag));
 
   return (
     <header ref={ref} className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border" {...props}>
@@ -187,7 +198,60 @@ export const Header = forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>
                 <Loader2 className="w-4 h-4 animate-spin" />
               </Button>
             ) : user ? (
-              <CommunityHeroWidget />
+              roleLoading ? (
+                // Stable generic user badge while role loads in background
+                <Button variant="ghost" size="sm" className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border select-none disabled:opacity-100" disabled>
+                  <span className="text-xs text-muted-foreground">
+                    {language === "en" ? "Loading..." : "लोड हो रहा है..."}
+                  </span>
+                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                </Button>
+              ) : isAdminUser ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border hover:bg-muted select-none">
+                      <Shield className="w-4 h-4 text-primary" />
+                      <span className="text-xs font-bold text-foreground">
+                        {role === "super_admin" 
+                          ? (language === "en" ? "Super Admin" : "सुपर एडमिन")
+                          : `${department ? department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Dept"} Admin`}
+                      </span>
+                      <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
+                        <User className="w-3.5 h-3.5" />
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-3 py-2 border-b border-border">
+                      <p className="text-xs font-semibold text-foreground">
+                        {user.email}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">
+                        {role?.replace("_", " ")}
+                      </p>
+                    </div>
+                    <DropdownMenuItem asChild>
+                      <Link to={ROUTES.ADMIN} className="cursor-pointer flex w-full">
+                        {language === "en" ? "Operations Workspace" : "संचालन कार्यस्थान"}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={ROUTES.CIVIC_MAP} className="cursor-pointer flex w-full">
+                        {language === "en" ? "Field Map" : "क्षेत्र मानचित्र"}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      {language === "en" ? "Sign Out" : "साइन आउट"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <CommunityHeroWidget />
+              )
             ) : (
               <Link to={ROUTES.SIGN_IN}>
                 <Button variant="outline" size="sm" className="hidden sm:flex gap-2">
@@ -232,42 +296,73 @@ export const Header = forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>
               {/* Auth Links */}
               <div className="mt-2 pt-2 border-t border-border space-y-1">
                 {user ? (
-                  <>
-                    <Link
-                      to={ROUTES.PROFILE}
-                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <User className="w-5 h-5" />
-                      {language === "en" ? "My Profile" : "मेरी प्रोफ़ाइल"}
-                    </Link>
-                    <Link
-                      to={`${ROUTES.PROFILE}?tab=issues`}
-                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <FileText className="w-5 h-5" />
-                      {language === "en" ? "My Issues" : "मेरी समस्याएं"}
-                    </Link>
-                    <Link
-                      to={`${ROUTES.PROFILE}?tab=notifications`}
-                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Bell className="w-5 h-5" />
-                      {language === "en" ? "Notifications" : "अधिसूचनाएं"}
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleSignOut();
-                        setIsMenuOpen(false);
-                      }}
-                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-destructive hover:bg-muted rounded-lg transition-colors w-full"
-                    >
-                      <LogOut className="w-5 h-5" />
-                      {language === "en" ? "Sign Out" : "साइन आउट"}
-                    </button>
-                  </>
+                  isAdminUser ? (
+                    <>
+                      <Link
+                        to={ROUTES.ADMIN}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Shield className="w-5 h-5" />
+                        {language === "en" ? "Operations Workspace" : "संचालन कार्यस्थान"}
+                      </Link>
+                      <Link
+                        to={ROUTES.CIVIC_MAP}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Map className="w-5 h-5" />
+                        {language === "en" ? "Field Map" : "क्षेत्र मानचित्र"}
+                      </Link>
+                      <button
+                        onClick={() => {
+                          handleSignOut();
+                          setIsMenuOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-destructive hover:bg-muted rounded-lg transition-colors w-full"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        {language === "en" ? "Sign Out" : "साइन आउट"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        to={ROUTES.PROFILE}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <User className="w-5 h-5" />
+                        {language === "en" ? "My Profile" : "मेरी प्रोफ़ाइल"}
+                      </Link>
+                      <Link
+                        to={`${ROUTES.PROFILE}?tab=issues`}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <FileText className="w-5 h-5" />
+                        {language === "en" ? "My Issues" : "मेरी समस्याएं"}
+                      </Link>
+                      <Link
+                        to={`${ROUTES.PROFILE}?tab=notifications`}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Bell className="w-5 h-5" />
+                        {language === "en" ? "Notifications" : "अधिसूचनाएं"}
+                      </Link>
+                      <button
+                        onClick={() => {
+                          handleSignOut();
+                          setIsMenuOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-destructive hover:bg-muted rounded-lg transition-colors w-full"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        {language === "en" ? "Sign Out" : "साइन आउट"}
+                      </button>
+                    </>
+                  )
                 ) : (
                   <>
                     <Link

@@ -7,7 +7,7 @@ import { ErrorBoundary } from "@/shared/components/ErrorBoundary";
 function App() {
   return (
     <AppProviders>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <ErrorBoundary>
           <AppRoutes />

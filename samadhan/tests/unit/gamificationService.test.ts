@@ -1,9 +1,18 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { gamificationService } from "@/features/profile/services/gamificationService";
 import { Issue } from "@/shared/types/domain/Issue";
 import { IssueStatus } from "@/shared/types/domain/IssueStatus";
 
 describe("gamificationService", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-26T10:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const mockIssues: Issue[] = [
     {
       id: "issue1",

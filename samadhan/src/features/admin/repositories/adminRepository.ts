@@ -35,7 +35,7 @@ export const adminRepository = {
   async fetchAllIssuesAdmin(): Promise<IssueResponse[]> {
     const { data, error } = await supabase
       .from("reported_issues")
-      .select("*")
+      .select("*, case_participations(*), department_tasks(*), ai_coordination_plans(*, ai_plan_participants(*), ai_plan_tasks(*))")
       .is("master_issue_id", null)
       .order("created_at", { ascending: false });
 

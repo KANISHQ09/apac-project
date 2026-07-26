@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "../layouts/MainLayout";
 import { AuthGuard } from "./guards/AuthGuard";
 import { AdminGuard } from "./guards/AdminGuard";
+import { CitizenGuard } from "./guards/CitizenGuard";
+import { LandingGuard } from "./guards/LandingGuard";
 import { ROUTES } from "@/shared/config/routes";
 import { Loader2 } from "lucide-react";
 
@@ -33,7 +35,7 @@ export function AppRoutes() {
       <Routes>
         <Route element={<MainLayout />}>
           {/* Public Routes */}
-          <Route path={ROUTES.LANDING} element={<Landing />} />
+          <Route path={ROUTES.LANDING} element={<LandingGuard><Landing /></LandingGuard>} />
           <Route path={ROUTES.SIGN_IN} element={<Auth />} />
           <Route path={ROUTES.SIGN_UP} element={<Auth />} />
           <Route path={ROUTES.SCHEMES} element={<Schemes />} />
@@ -45,7 +47,9 @@ export function AppRoutes() {
             path={ROUTES.DASHBOARD}
             element={
               <AuthGuard>
-                <Dashboard />
+                <CitizenGuard>
+                  <Dashboard />
+                </CitizenGuard>
               </AuthGuard>
             }
           />
@@ -53,7 +57,9 @@ export function AppRoutes() {
             path={ROUTES.REPORT_ISSUE}
             element={
               <AuthGuard>
-                <ReportIssue />
+                <CitizenGuard>
+                  <ReportIssue />
+                </CitizenGuard>
               </AuthGuard>
             }
           />
@@ -61,7 +67,9 @@ export function AppRoutes() {
             path={ROUTES.DOCUMENTS}
             element={
               <AuthGuard>
-                <Documents />
+                <CitizenGuard>
+                  <Documents />
+                </CitizenGuard>
               </AuthGuard>
             }
           />
@@ -69,7 +77,9 @@ export function AppRoutes() {
             path={ROUTES.PROFILE}
             element={
               <AuthGuard>
-                <Profile />
+                <CitizenGuard>
+                  <Profile />
+                </CitizenGuard>
               </AuthGuard>
             }
           />

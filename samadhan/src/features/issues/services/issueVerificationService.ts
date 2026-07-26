@@ -1,4 +1,5 @@
 import { gamificationService } from "../../profile/services/gamificationService";
+import { logger } from "@/shared/services/logger";
 
 export interface VerificationRecord {
   issueId: string;
@@ -31,7 +32,9 @@ class IssueVerificationService {
     if (local) {
       try {
         return JSON.parse(local);
-      } catch {}
+      } catch (err) {
+        logger.error("Failed to parse verification record from local storage:", err);
+      }
     }
 
     // Initialize realistic vote counts for the demo dataset

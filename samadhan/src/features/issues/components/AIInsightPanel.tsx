@@ -74,7 +74,7 @@ export function AIInsightPanel({ issue }: AIInsightPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [issue.id]);
+  }, [issue]);
 
   const sev = insight ? (SEVERITY_CONFIG[insight.severity] ?? SEVERITY_CONFIG.medium) : null;
   const pri = insight ? (PRIORITY_CONFIG[insight.priority] ?? PRIORITY_CONFIG.medium) : null;

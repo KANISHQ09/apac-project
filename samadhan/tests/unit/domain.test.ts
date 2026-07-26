@@ -34,4 +34,34 @@ describe("Domain Mappers", () => {
     expect(domainIssue.supportsCount).toBe(5);
     expect(domainIssue.createdAt).toBeInstanceOf(Date);
   });
+
+  it("should map stale pending AI status to failed and preserve fresh ones", () => {
+    const now = Date.now();
+    
+    // 1. Stale issue response
+    const staleResponse: IssueResponse = {
+      id: "stale-id",
+      user_id: "user-1",
+      title: "Water pipe leaked",
+      category: "Water Supply",
+      status: "reported",
+      created_at: new Date(now - 20000).toISOString(), // 20s ago
+      ai_status: "pending",
+    };
+    const staleIssue = issueService.mapResponseToDomain(staleResponse);
+    expect(staleIssue.aiStatus).toBe("failed");
+
+    // 2. Fresh issue response
+    const freshResponse: IssueResponse = {
+      id: "fresh-id",
+      user_id: "user-1",
+      title: "Water pipe leaked",
+      category: "Water Supply",
+      status: "reported",
+      created_at: new Date(now - 2000).toISOString(), // 2s ago
+      ai_status: "pending",
+    };
+    const freshIssue = issueService.mapResponseToDomain(freshResponse);
+    expect(freshIssue.aiStatus).toBe("pending");
+  });
 });

@@ -15,7 +15,9 @@ const countUserVotes = (): number => {
           if (data && data.userVote) {
             count++;
           }
-        } catch {}
+        } catch (_err) {
+          // Ignore invalid or corrupted vote key entries in localStorage
+        }
       }
     }
   }

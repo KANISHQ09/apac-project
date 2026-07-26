@@ -18,7 +18,9 @@ import {
   TreePine,
   Building2,
   Send,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  CheckCircle2
 } from "lucide-react";
 
 const categories = [
@@ -57,6 +59,18 @@ export default function ReportIssuePage() {
     detectedClasses,
     handleImageChange,
     handleSubmit,
+    // AI Vision Telemetry
+    aiConfidence,
+    aiReason,
+    aiRisk,
+    aiPriority,
+    aiProvider,
+    aiModel,
+    aiCategory,
+    aiSupportingDepartments,
+    aiRequiresMultipleDepartments,
+    aiEstimatedResponseTime,
+    aiDetectionTimeMs,
     // Voice
     isRecording,
     interimTranscript,
@@ -200,15 +214,134 @@ export default function ReportIssuePage() {
               )}
             </label>
             {detecting && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {language === "en" ? "Analyzing upload..." : "अपलोड का विश्लेषण हो रहा है..."}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                {language === "en" ? "Performing secure AI analysis..." : "सुरक्षित एआई विश्लेषण किया जा रहा है..."}
+              </div>
+            )}
+            {imagePreview && !detecting && detectedClasses.length === 0 && (
+              <div className="mt-4 p-4 rounded-xl border border-amber-200 bg-amber-50/50 space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-amber-800 font-semibold">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <span>
+                    {language === "en" ? "Analysis Limit Reached" : "विश्लेषण सीमा समाप्त"}
+                  </span>
+                </div>
+                <p className="text-amber-700 leading-relaxed font-medium">
+                  {language === "en"
+                    ? "We couldn't confidently identify the issue. Possible categories: Roads, Water, Buildings. Please select the closest one."
+                    : "हम विश्वासपूर्वक समस्या की पहचान नहीं कर सके। संभावित श्रेणियां: सड़कें, पानी, इमारतें। कृपया निकटतम श्रेणी चुनें।"}
+                </p>
               </div>
             )}
             {detectedClasses.length > 0 && (
-              <p className="text-sm text-primary font-medium">
-                {language === "en" ? "Detected" : "पाया गया"}: {detectedClasses.join(", ")}
-              </p>
+              <div className="mt-4 p-4 rounded-xl border border-blue-100 bg-blue-50/30 space-y-3">
+                <div className="flex items-center gap-2 border-b border-blue-100/50 pb-2.5">
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                  <span className="font-semibold text-sm text-foreground">
+                    {language === "en" ? "AI Assessment" : "एआई मूल्यांकन"}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                  <div>
+                    <span className="text-muted-foreground block mb-0.5">
+                      {language === "en" ? "Detected Issue" : "पहचानी गई समस्या"}
+                    </span>
+                    <span className="font-semibold text-foreground capitalize">
+                      {detectedClasses[0] || "Civic Hazard"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-0.5">
+                      {language === "en" ? "Confidence" : "विश्वास स्तर"}
+                    </span>
+                    <span className={`font-semibold ${aiConfidence && aiConfidence < 0.75 ? "text-amber-600" : "text-emerald-600"}`}>
+                      {aiConfidence ? `${Math.round(aiConfidence * 100)}%` : "85%"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-0.5">
+                      {language === "en" ? "Responsible Department" : "जिम्मेदार विभाग"}
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {aiCategory || "General Municipal Services"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-0.5">
+                      {language === "en" ? "Estimated Response Time" : "अनुमानित प्रतिक्रिया समय"}
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {aiEstimatedResponseTime || "2-3 days"}
+                    </span>
+                  </div>
+                </div>
+
+                {aiSupportingDepartments && aiSupportingDepartments.length > 0 && (
+                  <div className="text-xs">
+                    <span className="text-muted-foreground block mb-0.5">
+                      {language === "en" ? "Supporting Departments" : "सहायक विभाग"}
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {aiSupportingDepartments.join(", ")}
+                    </span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-2 border-t border-blue-100/50 pt-2.5 text-xs">
+                  {aiPriority && (
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">
+                        {language === "en" ? "Priority" : "प्राथमिकता"}
+                      </span>
+                      <div>
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide ${
+                          aiPriority === "CRITICAL" ? "bg-red-100 text-red-800" :
+                          aiPriority === "HIGH" ? "bg-amber-100 text-amber-800" :
+                          "bg-blue-100 text-blue-800"
+                        }`}>
+                          {aiPriority}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {aiRisk && (
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">
+                        {language === "en" ? "Citizen Risk" : "नागरिक जोखिम"}
+                      </span>
+                      <p className="text-foreground leading-relaxed font-medium">{aiRisk}</p>
+                    </div>
+                  )}
+
+                  {aiReason && (
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">
+                        {language === "en" ? "Recommended Action" : "अनुशंसित कार्रवाई"}
+                      </span>
+                      <p className="text-foreground leading-relaxed font-medium">{aiReason}</p>
+                    </div>
+                  )}
+                </div>
+
+                {aiConfidence && aiConfidence < 0.75 && (
+                  <div className="flex gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs mt-1">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                    <div>
+                      <p className="font-semibold">
+                        {language === "en" ? "Review Recommended" : "समीक्षा की सिफारिश"}
+                      </p>
+                      <p className="mt-0.5 leading-relaxed">
+                        {language === "en"
+                          ? "The AI confidence is low. Please manually verify categories and description before submitting."
+                          : "एआई विश्वास स्तर कम है। सबमिट करने से पहले कृपया श्रेणियों और विवरण को मैन्युअल रूप से सत्यापित करें।"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 

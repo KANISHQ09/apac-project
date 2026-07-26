@@ -51,23 +51,60 @@ export const issueRepository = {
 
   async insertIssue(issue: Omit<IssueResponse, "id" | "created_at" | "updated_at" | "supports_count">): Promise<IssueResponse> {
     const { data, error } = await supabase
-      .from("reported_issues")
-      .insert({
-        user_id: issue.user_id,
-        title: issue.title,
-        description: issue.description,
-        category: issue.category,
-        location: issue.location,
-        status: issue.status,
-        image_urls: issue.image_urls,
-        latitude: issue.latitude,
-        longitude: issue.longitude,
-      })
-      .select()
-      .single();
+      .rpc("create_civic_case_with_participation", {
+        p_user_id: issue.user_id,
+        p_title: issue.title,
+        p_description: issue.description,
+        p_category: issue.category,
+        p_location: issue.location,
+        p_latitude: issue.latitude,
+        p_longitude: issue.longitude,
+        p_image_urls: issue.image_urls,
+        p_data_origin: issue.data_origin || "citizen_live",
+      });
 
     if (error) throw new APIError(error.message, undefined, error);
-    return data as IssueResponse;
+    
+    const createdIssue = data as IssueResponse;
+    const updatePayload: any = {};
+    if (issue.ai_provider) updatePayload.ai_provider = issue.ai_provider;
+    if (issue.ai_model) updatePayload.ai_model = issue.ai_model;
+    if (issue.ai_confidence !== undefined && issue.ai_confidence !== null) updatePayload.ai_confidence = issue.ai_confidence;
+    if (issue.ai_detected_issue) updatePayload.ai_detected_issue = issue.ai_detected_issue;
+    if (issue.ai_reason) updatePayload.ai_reason = issue.ai_reason;
+    if (issue.ai_risk) updatePayload.ai_risk = issue.ai_risk;
+    if (issue.ai_priority) updatePayload.ai_priority = issue.ai_priority;
+    if (issue.ai_category) updatePayload.ai_category = issue.ai_category;
+    if (issue.ai_supporting_departments) updatePayload.ai_supporting_departments = issue.ai_supporting_departments;
+    if (issue.ai_requires_multiple_departments !== undefined && issue.ai_requires_multiple_departments !== null) {
+      updatePayload.ai_requires_multiple_departments = issue.ai_requires_multiple_departments;
+    }
+    if (issue.ai_estimated_response_time) updatePayload.ai_estimated_response_time = issue.ai_estimated_response_time;
+    if (issue.ai_detection_time_ms !== undefined && issue.ai_detection_time_ms !== null) {
+      updatePayload.ai_detection_time_ms = issue.ai_detection_time_ms;
+    }
+    if (issue.ai_citizen_corrected !== undefined && issue.ai_citizen_corrected !== null) {
+      updatePayload.ai_citizen_corrected = issue.ai_citizen_corrected;
+    }
+
+    if (Object.keys(updatePayload).length > 0) {
+      try {
+        const { data: updatedData, error: updateError } = await supabase
+          .from("reported_issues")
+          .update(updatePayload)
+          .eq("id", createdIssue.id)
+          .select("*")
+          .single();
+        
+        if (!updateError && updatedData) {
+          return updatedData as IssueResponse;
+        }
+      } catch (upErr) {
+        console.warn("Failed to update post-insert telemetry columns:", upErr);
+      }
+    }
+
+    return createdIssue;
   },
 
   async uploadIssueImage(userId: string, file: File): Promise<string> {

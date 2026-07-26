@@ -54,7 +54,7 @@ BEGIN
   ) VALUES (
     v_super_admin_id,
     'admin@samadhan.gov.in',
-    crypt('Samadhan@Admin2024!', gen_salt('bf')),
+    crypt('Samadhan@Admin2024!', gen_salt('bf', 10)),
     now(),
     '{"full_name": "Samadhan Super Admin", "is_mock_seed": true}'::jsonb,
     '{"provider": "email", "providers": ["email"]}'::jsonb,
@@ -80,7 +80,7 @@ BEGIN
   ) VALUES (
     v_water_id,
     'water@samadhan.gov.in',
-    crypt('Samadhan@Water2024!', gen_salt('bf')),
+    crypt('Samadhan@Water2024!', gen_salt('bf', 10)),
     now(),
     '{"full_name": "Water Supply Admin", "is_mock_seed": true}'::jsonb,
     '{"provider": "email", "providers": ["email"]}'::jsonb,
@@ -106,7 +106,7 @@ BEGIN
   ) VALUES (
     v_sanitation_id,
     'sanitation@samadhan.gov.in',
-    crypt('Samadhan@Sanitation2024!', gen_salt('bf')),
+    crypt('Samadhan@Sanitation2024!', gen_salt('bf', 10)),
     now(),
     '{"full_name": "Sanitation Admin", "is_mock_seed": true}'::jsonb,
     '{"provider": "email", "providers": ["email"]}'::jsonb,
@@ -132,7 +132,7 @@ BEGIN
   ) VALUES (
     v_electricity_id,
     'electricity@samadhan.gov.in',
-    crypt('Samadhan@Electricity2024!', gen_salt('bf')),
+    crypt('Samadhan@Electricity2024!', gen_salt('bf', 10)),
     now(),
     '{"full_name": "Electricity Admin", "is_mock_seed": true}'::jsonb,
     '{"provider": "email", "providers": ["email"]}'::jsonb,
@@ -158,7 +158,7 @@ BEGIN
   ) VALUES (
     v_roads_id,
     'roads@samadhan.gov.in',
-    crypt('Samadhan@Roads2024!', gen_salt('bf')),
+    crypt('Samadhan@Roads2024!', gen_salt('bf', 10)),
     now(),
     '{"full_name": "Roads Admin", "is_mock_seed": true}'::jsonb,
     '{"provider": "email", "providers": ["email"]}'::jsonb,
@@ -184,7 +184,7 @@ BEGIN
   ) VALUES (
     v_parks_id,
     'parks@samadhan.gov.in',
-    crypt('Samadhan@Parks2024!', gen_salt('bf')),
+    crypt('Samadhan@Parks2024!', gen_salt('bf', 10)),
     now(),
     '{"full_name": "Parks & Gardens Admin", "is_mock_seed": true}'::jsonb,
     '{"provider": "email", "providers": ["email"]}'::jsonb,
@@ -210,7 +210,7 @@ BEGIN
   ) VALUES (
     v_buildings_id,
     'buildings@samadhan.gov.in',
-    crypt('Samadhan@Buildings2024!', gen_salt('bf')),
+    crypt('Samadhan@Buildings2024!', gen_salt('bf', 10)),
     now(),
     '{"full_name": "Buildings Admin", "is_mock_seed": true}'::jsonb,
     '{"provider": "email", "providers": ["email"]}'::jsonb,
